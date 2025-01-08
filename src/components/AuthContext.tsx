@@ -1,6 +1,6 @@
 import React, { Dispatch, ReactNode, SetStateAction, useContext, useEffect, useState } from 'react'
 import { getNote } from '../utils/databaseFunctions';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { verifyPassword } from '../utils/password';
 
 
