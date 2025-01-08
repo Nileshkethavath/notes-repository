@@ -19,7 +19,8 @@
 
 .ql-editor{
     padding: 16px 16px 0px !important;
-    height: calc(100vh - 168px - 104px) !important;
+    border-radius: 8px;
+    /* height: calc(100vh - 168px - 104px) !important; */
     overflow-y: auto !important;
     -moz-user-modify: read-write;
 }

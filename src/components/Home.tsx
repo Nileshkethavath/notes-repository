@@ -11,7 +11,6 @@ import ModalComponent from './ModalComponent';
 import { createOrUpdateNote, getOrCreate, updateNote } from '../utils/databaseFunctions';
 import generateID from '../utils/generateID';
 import { useDebounce } from '../custom-hooks/useDebounce';
-import AutoCloseToast from './ToastComponent';
 import { useToastContext } from './ToastContext';
 
 
@@ -277,6 +276,7 @@ export function Home() {
     >
       <Box
         sx={(theme) => ({
+          flex:'0 1 auto',
           display: 'flex',
           gap: theme.spacing(1),
           padding: theme.spacing(2),
@@ -506,18 +506,19 @@ export function Home() {
         </Box>
       </Box>
 
-      <Box flex={1}
+      <Box
         sx={{
+          flex:'1',
           backgroundColor: 'white',
           borderRadius: "8px",
           display: "flex",
           flexDirection: 'column',
           boxShadow: "0px 0px 5px -2px",
-          maxHeight: 'calc(100vh - 168px) !important',
+          // maxHeight: 'calc(100vh - 168px) !important',
         }}
       >
 
-        <Box id="custom-toolbar" display={'flex'} flexWrap={'wrap'}>
+        <Box id="custom-toolbar" display={'flex'} flexWrap={'wrap'} flex={'0 1 auto'}>
           {toolbarButtons.map((btn) => (
             <Fragment  key={btn.label}>
               {(btn.className === 'ql-color' || btn.className === 'ql-background') ?
@@ -550,7 +551,8 @@ export function Home() {
           formats={formats}
           ref={quillRef}
           style={{
-            height: "100%"
+            height: "100%",
+            flex:'1'
           }}
         />
 
