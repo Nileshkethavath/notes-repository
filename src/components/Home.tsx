@@ -214,6 +214,26 @@ export function Home() {
     })
   }, [note])
 
+  useEffect(()=>{
+    let timer: NodeJS.Timeout;
+    const resizeFunc = () => {
+      clearTimeout(timer);
+
+      timer = setTimeout(()=>{
+          const notesContainer = document.getElementsByClassName('notes-container')[0];
+          const toolBar = document.getElementById('custom-toolbar');
+          const quillContainer = document.getElementsByClassName('quill')[0];
+
+          if(notesContainer && toolBar && quillContainer){
+            quillContainer.setAttribute('style',`max-height: ${notesContainer.clientHeight - toolBar.clientHeight - 48}px; flex: 1 1 0%;`);
+            console.log('height',notesContainer.clientHeight - toolBar.clientHeight - 48, quillContainer.getAttribute('style'))
+          }
+      },100)
+    }
+    resizeFunc();
+    window.addEventListener('resize',resizeFunc)
+  }, [])
+
 
   const getCustomToolBarButton = (button: { label: string, className: string, value?: string | undefined }) => {
     return (
@@ -271,7 +291,13 @@ export function Home() {
         backgroundColor: '#00000012'
       }}
       py={5}
-      px={20}
+      px={{
+        xs:0,
+        sm:5,
+        md:10,
+        lg:15,
+        xl:20
+      }}
       gap={2}
     >
       <Box
@@ -290,8 +316,17 @@ export function Home() {
           fontWeight={'700'}
           letterSpacing={'-1px'}
           px={3}
+          sx={{
+            '@media (max-width: 700px)':{
+              paddingLeft: 3,
+              paddingRight: 0
+            },
+            '@media (max-width: 340px)':{
+              padding: 0
+            }
+          }}
         >
-          C Notes
+          Notes
           <EditNoteIcon
             sx={(theme) => ({
               verticalAlign: 'middle',
@@ -309,7 +344,10 @@ export function Home() {
             display: 'inline-flex',
             gap: theme.spacing(1),
             justifyContent: 'center',
-            height: theme.spacing(5)
+            height: theme.spacing(5),
+            '@media (max-width: 700px)':{
+              display:'none'
+            }
           })}
         >
           <TextField
@@ -348,7 +386,10 @@ export function Home() {
           display: 'inline-flex',
           gap: theme.spacing(1),
           justifyContent: 'right',
-          height: theme.spacing(5)
+          height: theme.spacing(5),
+          '@media (max-width: 700px)':{
+            flex: 1
+          }
         })}>
 
 
@@ -516,6 +557,7 @@ export function Home() {
           boxShadow: "0px 0px 5px -2px",
           // maxHeight: 'calc(100vh - 168px) !important',
         }}
+        className='notes-container'
       >
 
         <Box id="custom-toolbar" display={'flex'} flexWrap={'wrap'} flex={'0 1 auto'}>
