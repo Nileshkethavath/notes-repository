@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import { Navigate, useLocation, useParams } from 'react-router-dom'
-import { getNote } from '../utils/databaseFunctions';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useAuth } from './AuthContext';
 import { webSocket } from '../utils/webSocket'
