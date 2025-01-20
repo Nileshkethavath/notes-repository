@@ -17,6 +17,10 @@
     aspect-ratio: 3/2;
 }
 
+.ql-editor a{
+    cursor: pointer;
+}
+
 .ql-editor{
     padding: 16px 16px 0px !important;
     border-radius: 8px;

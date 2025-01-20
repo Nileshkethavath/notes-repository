@@ -1,5 +1,5 @@
 import { EditNote } from '@mui/icons-material'
-import { Box, Button, FormHelperText, Stack, TextField, Typography } from '@mui/material'
+import { Box, Button, CircularProgress, FormHelperText, Stack, TextField, Typography } from '@mui/material'
 import { useAuth } from './AuthContext'
 import { useNavigate, useParams } from 'react-router-dom'
 import {useForm} from 'react-hook-form'
@@ -11,8 +11,9 @@ export const Login = () => {
     const [valid, setValid] = useState(false)
     const navigate = useNavigate()
     const {register, handleSubmit, watch} = useForm<{password: string}>()
+    const [pending, setPending] = useState(false)
 
-    const passwordWatch = watch('password');
+    const passwordWatch = watch('password'); 
 
     useEffect(()=>{
         if(valid){
@@ -21,13 +22,14 @@ export const Login = () => {
     }, [passwordWatch])
 
     const submitHandler = (data: {password: string}) => {
+        setPending(true);
         if(auth){
             auth.login(id, data.password).then((res)=>{
+                setPending(false)
                 if(!res){
                     setValid(true);
                 }else{
                     setValid(false)
-                    console.log('success')
                     navigate(`/${id}`, {replace: true});
                 }
             })
@@ -69,7 +71,7 @@ export const Login = () => {
                         >
                         </TextField>
 
-                        <Button variant='contained' type='submit' fullWidth sx={{padding:'10px'}}>Login</Button>
+                        <Button variant='contained' type='submit' fullWidth sx={{padding:'10px'}} disabled={pending}>{pending ? <CircularProgress size={25} /> : 'Login'}</Button>
                     </Box>
                     <FormHelperText  sx={{color:'red', textAlign:'center', marginTop:'8px', fontWeight:"600"}}>
                         {valid && "Incorrect Password"}

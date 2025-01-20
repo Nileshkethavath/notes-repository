@@ -1,88 +1,90 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Navigate, useLocation, useParams } from 'react-router-dom'
 import { getNote } from '../utils/databaseFunctions';
 import CircularProgress from '@mui/material/CircularProgress';
 import { useAuth } from './AuthContext';
+import { webSocket } from '../utils/webSocket'
 
 const ProtectedRoute = (props: {componentType: string, Component: React.FC}) => {
-    const {id = ''} = useParams();
-    const location = useLocation()
-    const [redirect, setRedirect] = useState<string | null>(null)
-    const [checking, setChecking] = useState(true)
     const auth = useAuth();
-    console.log('protected route');
+    const {id = ''} = useParams();
+    const [checking, setChecking] = useState(true)
+    const {componentType, Component} = props;
+    console.log(auth);
 
     function validatePattern() {
         return (id && /[A-Za-z0-9]{8,25}/.test(id));
     }
-    const redirectFunction = (comp: string, url1:string | null, url2: string | null) => {
-            props.componentType.match(`${comp}`) ?
-            setRedirect(url1) :
-            setRedirect(url2)
-    }
 
     useEffect(()=>{
-        setRedirect(null);
-    },[location.pathname])
-
-    useEffect(()=>{
-        
-            if(!validatePattern()){
-                setRedirect('/invalid')
-                setChecking(false)
-            }else{
-                getNote(id).then((res)=>{
-                    setChecking(false)
-                    if(res.isDataExist){
-                        auth?.setNewNote(false);
-                        if(res.data.password){
-                            auth?.setHasPassword(true)
-                            redirectFunction('home', `/login/${id}`, null)
+            
+                if(!validatePattern()){
+                    auth?.setIsValid(false)
+                    console.log('auth', id, true)
+                }else{
+                    console.log('auth', id, false)
+                    auth?.setIsValid(true);
+    
+                    webSocket.emit('checkNote', id);
+    
+                    webSocket.on('checkNoteResponse', (res) => {
+                        setChecking(false);
+                        console.log('respone', res)
+                        if(res.isNoteExist){
+                            auth?.setNewNote(false);
+                            auth?.setHasPassword(res.hasPassword ? true : false);
+                            auth?.setIsAuthenticated(res.hasPassword ? false : true);
                         }else{
-                            auth?.setHasPassword(false)
-                            redirectFunction('home', null, `/${id}`)
+                            auth?.setNewNote(true);
+                            auth?.setHasPassword(false);
+                            auth?.setIsAuthenticated(true);
                         }
+                    })
+                }
+            
+        }, [id])
+
+
+    const redirectHandler = (type: string) => {
+        if(auth){
+            const {newNote, hasPassword, isAuthenticated} = auth;
+            if(newNote){
+                return type === 'home' ? <Component/> : <Navigate to={`/${id}`}/>
+            }else{
+                if(hasPassword){
+                    if(isAuthenticated){
+                        return type === 'home' ? <Component/> : <Navigate to={`/${id}`}/>
                     }else{
-                        auth?.setNewNote(true);
-                        redirectFunction('home', null, `/${id}`)
+                        return type === 'home' ? <Navigate to={`/login/${id}`} /> : <Component/>
                     }
-                })
+                }else{
+                    return type === 'home' ? <Component/> : <Navigate to={`/${id}`}/>
+                }
             }
-        
-    }, [])
+        }
+    }
 
     // if(!network.isOnline){
     //     return <OfflineComponent/>
     // }
 
-    if((props.componentType === 'home') && ((auth?.isAuthenticated || auth?.newNote || ((auth?.newNote === false) && !auth.hasPassword)) )){
-        const {Component} = props;
-        return <Component/>
-    }
-
-    if((props.componentType === 'login') && ((auth && (( auth.newNote === false) && (auth.hasPassword && !auth.isAuthenticated))) )){
-        const {Component} = props;
-        return <Component/>
-    }
-
-    if(!checking){
-        const {Component} = props;
-        console.log('4',redirect)
-
-        if(redirect){
-            return <Navigate to={redirect} replace={true}/>
+        if(checking){
+            return (
+                <div style={{ display: 'flex', justifyContent: 'center', 
+                              alignItems: 'center', height: '100vh', 
+                              backgroundColor:"rgb(0 0 0 / 10%)" }}>
+                    <CircularProgress  />
+                </div>
+            )
         }else{
-            return <Component/>
+            if (!auth?.isValid) {
+                return <Navigate to={'/invalid'} replace />;
+            }
+
+            return redirectHandler(componentType);
         }
-    }else{
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', 
-                          alignItems: 'center', height: '100vh', 
-                          backgroundColor:"rgb(0 0 0 / 10%)" }}>
-                <CircularProgress  />
-            </div>
-        );
-    }
+
+    
 
 
 }
@@ -97,7 +99,7 @@ hasPassword = true;
 isAuthenticated = true;
 
 -> home
-    check for exist
+    check for exist => show => loading
         -> yes
             -> password
                 -> yes => redirect /login
@@ -107,16 +109,8 @@ isAuthenticated = true;
 
 -> login
 
-    if(isAuthenticated || newNote || (newNote != null && !hasPassword)){
-        <home/>
-    }
 
-    if((newNote != null && (hasPassword && !isAuthenticated)){
-        <login/>
-    }
-
-
-    check for exist
+    check for exist => show => loading
         -> yes
             -> password
                 -> yes => same 
@@ -127,5 +121,8 @@ isAuthenticated = true;
             -> redirect /home
 
 
+
+
+    
 
 */

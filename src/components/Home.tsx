@@ -1,17 +1,19 @@
-import { Typography, TextField, Box, Stack, Tooltip, Zoom, Button } from '@mui/material'
-import React, { Fragment, useEffect, useRef, useState } from 'react';
+import { Typography, TextField, Box, Stack, Tooltip, Zoom, Button, Fade } from '@mui/material'
+import React, { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { v4 as uuid } from 'uuid'
 import AddIcon from '@mui/icons-material/Add';
 import LockIcon from '@mui/icons-material/Lock';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useNavigate, useParams } from 'react-router-dom';
 import ReactQuill from 'react-quill';
 import './Home.css'
 import ModalComponent from './ModalComponent';
-import { createOrUpdateNote, getOrCreate, updateNote } from '../utils/databaseFunctions';
 import generateID from '../utils/generateID';
 import { useDebounce } from '../custom-hooks/useDebounce';
 import { useToastContext } from './ToastContext';
+import { webSocket } from '../utils/webSocket';
 
 
 export function Home() {
@@ -24,9 +26,16 @@ export function Home() {
   const [changeUrlModalOpen, setChangeUrlModalOpen] = useState(false)
   const [password, setPassword] = useState('');
   const [saved, setSaved] = useState(false);
+  const caretPosition = useRef(0); 
   const toastContext = useToastContext();
-  
 
+  //used to determine whether the update is from others or ours.
+  const othersUpdatesRef = useRef(false);
+
+  //To prevent the initial update of debouncedNote useEffect.
+  //causing un-necessary re-renders
+  const initialMountRef = useRef(true);
+  
   const debouncedNote = useDebounce(note, 100);
   const debouncedNoteTitle = useDebounce(noteTitle, 100);
   const quillRef = useRef<ReactQuill | null>(null);
@@ -61,8 +70,8 @@ export function Home() {
     { className: 'ql-align', value: 'justify', label: 'Justify' },
 
     { className: 'ql-link', label: 'Insert Link' },
-    { className: 'ql-image', label: 'Insert Image' },
-    { className: 'ql-video', label: 'Insert Video' },
+    // { className: 'ql-image', label: 'Insert Image', disabled: true},
+    // { className: 'ql-video', label: 'Insert Video' },
 
     { className: 'ql-color', label: 'Text Color' },
     { className: 'ql-background', label: 'Background Color' },
@@ -86,15 +95,16 @@ export function Home() {
     'indent',
     'align',
     'link',
-    'image',
-    'video',
+    // 'image',
+    // 'video',
     'color',
     'background',
     'script',
   ];
 
-  const titleChangeHandler = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setNoteTitle(event.target.value)
+  const changeNoteHandler = (value: string) => {
+    othersUpdatesRef.current = false;
+    setNote(value);
   }
 
   const newNoteHandler = () => {
@@ -105,26 +115,23 @@ export function Home() {
     setPassword('')
     navigate(`/${url}`, {replace:true})
 
-    createOrUpdateNote({
-      url ,
-      note : '',
-      noteTitle : '',
-      createdAt : new Date().toISOString(),
-      password : '',
-    })
+    webSocket.emit('createNote', url);
     toastContext?.setToast(true, 'New note created successfully...!')
 
   }
 
 
-  const getOrCreateFun = async () =>{ 
-      const obj = await getOrCreate(id);
-      
-      if(obj.isDataExist){
-        setNote(obj.data.note);
-        setNoteTitle(obj.data.noteTitle)
-        setPassword(obj.data.password)
-      }
+  const getOrCreateFun = () => { 
+    // console.log('getOrCreate')
+      webSocket.emit('getOrCreateNote', id);
+      webSocket.on('getOrCreateNoteResponse', (res) => {
+        // console.log(res)
+        if(!res.isNoteCreated){
+          setNote(res.note.note);
+          // setNoteTitle(res.note.noteTitle)
+          setPassword(res.note.password)
+        }
+      })
   }
 
 
@@ -134,28 +141,37 @@ export function Home() {
     },500)
 
     return ()=> clearTimeout(timer);
-  }, [saved])
-
-
-  useEffect(()=>{
-    updateNote(id, {note: note})
-      .then(()=>{
-        setSaved(true);
-      })
-  },[debouncedNote])
-
-
-  useEffect(()=>{
-    updateNote(id, {noteTitle: noteTitle})
-    .then(()=>{
-      setSaved(true);
-    })
-  },[debouncedNoteTitle])
+  }, [saved]) 
   
 
   useEffect(()=>{
-    getOrCreateFun();    
+    getOrCreateFun();   
   },[])
+
+  useEffect(()=>{
+    if(initialMountRef.current){
+      initialMountRef.current = false;
+      return ;
+    }
+
+    const handleUpdateNoteResponse = (data: { note: string }) => {
+      setSaved(true);
+      setNote(data.note)
+      othersUpdatesRef.current = true;
+      console.log('received update')
+    }
+
+    if(!othersUpdatesRef.current){
+      console.log('send for update', note)
+      webSocket.emit('updateNote', id, {note: note});
+    }
+
+    webSocket.on('updateNoteResponse', handleUpdateNoteResponse)
+
+    return () => {
+      webSocket.off('updateNoteResponse', handleUpdateNoteResponse)
+    }
+  },[debouncedNote])
 
   useEffect(() => {
 
@@ -187,31 +203,35 @@ export function Home() {
     if (quillRef.current) {
       const editor = quillRef.current.getEditor();
       const editorElement = editor.root;
-
       editorElement.setAttribute('spellcheck', 'false');
     }
   }, []);
 
   useEffect(() => {
-    const images = document.querySelectorAll('img');
-    const attached = 'clickEventAttached'
+    // const images = document.querySelectorAll('img');
+    // const attached = 'clickEventAttached'
 
-    Array.from(images).forEach((img) => {
-      if (!img.getAttribute(attached)) {
-        img.setAttribute(attached, 'true')
+    // Array.from(images).forEach((img) => {
+    //   if (!img.getAttribute(attached)) {
+    //     img.setAttribute(attached, 'true')
 
-        img.addEventListener('click', (e: MouseEvent) => {
+    //     img.addEventListener('click', (e: MouseEvent) => {
           
 
-          if (e.target instanceof HTMLImageElement) {
-            const anchorElement = document.createElement('a');
-            anchorElement.href = e.target?.src
-            anchorElement.download = 'image';
-            anchorElement.click();
-          }
-        })
-      }
-    })
+    //       if (e.target instanceof HTMLImageElement) {
+    //         const anchorElement = document.createElement('a');
+    //         anchorElement.href = e.target?.src
+    //         anchorElement.download = 'image';
+    //         anchorElement.click();
+    //       }
+    //     })
+    //   }
+    // })
+
+    if(quillRef.current){
+      const length = quillRef.current.getEditor().getText().length;
+      quillRef.current.getEditor().setSelection(length, 0);
+    }
   }, [note])
 
   useEffect(()=>{
@@ -237,8 +257,6 @@ export function Home() {
 
   const getCustomToolBarButton = (button: { label: string, className: string, value?: string | undefined }) => {
     return (
-      <Tooltip title={button.label} placement='top' key={button.label}>
-
         <Button
           key={button.className}
           className={button.className}
@@ -276,11 +294,35 @@ export function Home() {
 
         >
         </Button>
-      </Tooltip>
-
     )
   }
 
+  const getCustomToolBar = useMemo(() => {
+    return (
+      toolbarButtons.map((btn) => (
+        <Fragment  key={btn.label}>
+          {
+            (btn.className === 'ql-color' || btn.className === 'ql-background') ?
+              <Tooltip title={btn.label} placement='top' TransitionProps={{ timeout: 0 }}>
+                <Box sx={{ width: "40px", height: "40px", position: "relative" }}>
+
+                  {getCustomToolBarButton(btn)}
+
+                  <select className={btn.className}
+                    style={{ position: 'absolute', top: "50%", left: "50%", transform: 'translate(-50%,-50%)' }} />
+
+                </Box>
+              </Tooltip>
+            :
+            <Tooltip title={btn.label} placement='top' TransitionProps={{ timeout: 0 }}>
+              {getCustomToolBarButton(btn)}
+            </Tooltip>
+
+          }
+        </Fragment>
+      ))
+    )
+  }, [])
 
   return (
     <Stack
@@ -298,16 +340,16 @@ export function Home() {
         lg:15,
         xl:20
       }}
-      gap={2}
+      gap={1}
     >
       <Box
         sx={(theme) => ({
           flex:'0 1 auto',
           display: 'flex',
           gap: theme.spacing(1),
-          padding: theme.spacing(2),
-          backgroundColor: 'white',
-          boxShadow: '0px 0px 5px -2px',
+          // padding: '0px 16px',
+          // backgroundColor: 'inherit',
+          // boxShadow: '0px 0px 5px -2px',
           borderRadius: '8px'
         })}
       >
@@ -338,7 +380,7 @@ export function Home() {
           />
         </Typography>
 
-        <Box
+        {/* <Box
           sx={(theme) => ({
             flexGrow: 1,
             display: 'inline-flex',
@@ -380,13 +422,14 @@ export function Home() {
             value={noteTitle}
             onChange={titleChangeHandler}
           />
-        </Box>
+        </Box> */}
 
         <Box sx={(theme) => ({
           display: 'inline-flex',
           gap: theme.spacing(1),
           justifyContent: 'right',
           height: theme.spacing(5),
+          flex: 1,
           '@media (max-width: 700px)':{
             flex: 1
           }
@@ -436,7 +479,7 @@ export function Home() {
 
 
           <Tooltip
-            title='edit url'
+            title='Edit NoteId'
             arrow
             slots={{
               transition: Zoom
@@ -487,6 +530,50 @@ export function Home() {
             title={'Change URL'}
             name={'changeUrl'}
           />
+
+
+          <Tooltip
+            title='Delete Note'
+            arrow
+            slots={{
+              transition: Zoom
+            }}
+          >
+
+            <Box
+              sx={{
+                height: '100%',
+                display: "flex",
+                alignItems: "center",
+                boxSizing: 'border-box'
+              }}
+            >
+              <Button
+                variant='text'
+                disableRipple
+                sx={{
+                  height: "100%",
+                  width: '50px',
+                  minWidth: "50px",
+                  padding: '0px',
+                  '&:active': {
+                    backgroundColor: 'lightsteelblue'
+                  },
+                  '&:hover': {
+                    backgroundColor: '#cbeaf6'
+                  }
+                }}
+
+                // onClick={()=>setChangeUrlModalOpen(true)}
+              >
+                <DeleteOutlineIcon sx={{
+                  width: '50px'
+                }} />
+              </Button>
+            </Box>
+          </Tooltip>
+
+          
 
 
           <Tooltip
@@ -561,34 +648,12 @@ export function Home() {
       >
 
         <Box id="custom-toolbar" display={'flex'} flexWrap={'wrap'} flex={'0 1 auto'}>
-          {toolbarButtons.map((btn) => (
-            <Fragment  key={btn.label}>
-              {(btn.className === 'ql-color' || btn.className === 'ql-background') ?
-                <Tooltip title={btn.label} placement='top'>
-                  <Box sx={{ width: "40px", height: "40px", position: "relative" }}>
-
-                    {getCustomToolBarButton(btn)}
-
-                    <select className={btn.className}
-                      style={{ position: 'absolute', top: "50%", left: "50%", transform: 'translate(-50%,-50%)' }} />
-
-                  </Box>
-                </Tooltip>
-                :
-                <>
-                  {getCustomToolBarButton(btn)}
-                </>
-
-              }
-            </Fragment>
-          ))}
-
-
+          {getCustomToolBar}
         </Box>
 
         <ReactQuill
           value={note}
-          onChange={setNote}
+          onChange={changeNoteHandler}
           modules={modules}
           formats={formats}
           ref={quillRef}

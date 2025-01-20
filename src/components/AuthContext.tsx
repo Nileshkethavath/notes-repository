@@ -1,7 +1,7 @@
 import React, { Dispatch, ReactNode, SetStateAction, useContext, useEffect, useState } from 'react'
-import { getNote } from '../utils/databaseFunctions';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { verifyPassword } from '../utils/password';
+import { authNameSpace, webSocket } from '../utils/webSocket';
 
 
 interface AuthContextType {
@@ -11,8 +11,12 @@ interface AuthContextType {
     setIsAuthenticated: Dispatch<SetStateAction<boolean>>
     newNote: boolean | null;
     setNewNote: Dispatch<SetStateAction<boolean | null>>
-    hasPassword: boolean;
-    setHasPassword: Dispatch<SetStateAction<boolean>>
+    hasPassword: boolean | null;
+    setHasPassword: Dispatch<SetStateAction<boolean | null>>;
+    setIsValid: Dispatch<SetStateAction<boolean | null>>;
+    isValid: boolean | null;
+    setPending: Dispatch<SetStateAction<boolean>>;
+    pending: boolean | null;
 }
 
 interface AuthProviderProps {
@@ -28,29 +32,30 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const navigate = useNavigate();
     const [newNote, setNewNote] = useState<boolean | null>(null);
-    const [hasPassword, setHasPassword] = useState<boolean>(false);
+    const [hasPassword, setHasPassword] = useState<boolean | null>(null);
+    const [isValid, setIsValid] = useState<boolean | null>(null);
+    const [pending, setPending] = useState(false);
+    
 
-    useEffect(()=>{
+
+    const login = (url: string, password: string) => {
+        authNameSpace.emit('getNote', url);
         
-    }, [])
-
-
-    const login = async (url: string, password: string) => {
-        const {isDataExist, data} = await getNote(url);
-        let isLoggedIn = false;
-        let isMatch = await verifyPassword(password, data.password);
-
-        if(isDataExist && isMatch){
-            setIsAuthenticated(true)
-            // localStorage.setItem('authToken', JSON.stringify({pathname: url, loggedIn: true}));
-            setHasPassword(true)
-            isLoggedIn = true;
-        }else{
-            setIsAuthenticated(false)
-            isLoggedIn = false
-        }
-
-        return isLoggedIn;
+        return new Promise<boolean>((resolve, reject) => {
+            authNameSpace.on('getNoteResponse', async (data) => {
+                let isMatch = await verifyPassword(password, data.note.password);
+    
+                if(data.isNoteExist && isMatch){
+                    setIsAuthenticated(true)
+                    setHasPassword(true)
+                    resolve(true);
+                }else{
+                    setIsAuthenticated(false)
+                    resolve(false);
+                }
+    
+            })
+        })
     }
 
     const logout = (url: string) => {
@@ -61,7 +66,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
 
     return (
-        <AuthContext.Provider value={{login, logout, isAuthenticated, setIsAuthenticated, newNote, setNewNote, hasPassword, setHasPassword}}>
+        <AuthContext.Provider value={{login, logout, isAuthenticated, setIsAuthenticated, newNote, setNewNote, hasPassword, setHasPassword, isValid, setIsValid, pending, setPending}}>
             {children}
         </AuthContext.Provider>
     )

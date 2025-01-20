@@ -1,5 +1,6 @@
 import React from "react";
 import { Snackbar, Alert, Slide } from "@mui/material";
+import ReactDOM from "react-dom";
 import { useToastContext } from "./ToastContext";
 
 
@@ -16,12 +17,13 @@ const AutoCloseToast: React.FC = () => {
   };
 
   return (
+    ReactDOM.createPortal(
     <Snackbar
       open={toastContext?.open}
       autoHideDuration={2000}
       onClose={handleClose}
-      anchorOrigin={{ vertical: "bottom", horizontal: "center" }} 
-      TransitionComponent={(props) => <Slide {...props} direction="up" />} 
+      anchorOrigin={{ vertical: "top", horizontal: "center" }} 
+      TransitionComponent={(props) => <Slide {...props} direction="down" />} 
       sx={{
         "& .MuiPaper-root": {
           boxShadow: "0px 2px 5px -2px black", 
@@ -42,7 +44,9 @@ const AutoCloseToast: React.FC = () => {
       >
         {toastContext?.message}
       </Alert>
-    </Snackbar>
+    </Snackbar>, 
+    document.getElementById('root-toast') as HTMLElement
+  )
   );
 };
 

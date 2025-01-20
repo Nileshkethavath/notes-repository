@@ -1,11 +1,11 @@
-import { Box, Button, Divider, FormHelperText, InputLabel, Modal, TextField, Typography } from '@mui/material'
+import { Box, Button, CircularProgress, Divider, FormHelperText, InputLabel, Modal, TextField, Typography } from '@mui/material'
 import React, { ChangeEvent, Dispatch, SetStateAction, useEffect, useRef, useState } from 'react'
 import { SvgIconProps } from '@mui/material';
-import { getNote, updateNote, updateNoteKey } from '../utils/databaseFunctions';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { hashPassword } from '../utils/password';
 import { useToastContext } from './ToastContext';
+import { webSocket } from '../utils/webSocket';
 
 export const ModalComponent = (
     { modalOpen, setModalOpen, url, value, setValue, label, placeholder, Icon, title, name }:
@@ -21,6 +21,7 @@ export const ModalComponent = (
     const [errorStates, setErrorStates] = useState([true, true, true, true])
     const [urlexist, setUrlExist] = useState(false)
     const [showError, setShowError] = useState(false);
+    const [pending, setPending] = useState(false);
     
     const auth = useAuth()
     const toastContext = useToastContext()
@@ -42,16 +43,25 @@ export const ModalComponent = (
         if (name === 'changeUrl') {
             if (!(error && (data != url))) {
 
-                getNote(data)
-                    .then((response) => {
-                        if (response.isDataExist) {
+                // getNote(data)
+                //     .then((response) => {
+                setPending(true)
+                webSocket.emit('getNote', data);
+                webSocket.on('getNoteResponse', (res) => {
+                        setPending(false)
+                        if (res.isDataExist) {
                             setUrlExist(true);
                         } else {
                             setUrlExist(false);
-                            updateNoteKey(url, data);
-                            navigate(`/${data}`)
-                            setModalOpen(false)
-                            toastContext?.setToast(true, 'URL updated successfully')
+                            // updateNoteKey(url, data);
+                            setPending(true)
+                            webSocket.emit('updateNoteKey',url, data);
+                            webSocket.on('updateNoteKeyResponse', () => {
+                                setPending(false);
+                                navigate(`/${data}`)
+                                setModalOpen(false)
+                                toastContext?.setToast(true, 'URL updated successfully')
+                            })
                         }
                     })
 
@@ -60,13 +70,17 @@ export const ModalComponent = (
         } else if (name === 'password') {
             //hash password before storing it to DB
             hashPassword(data).then((res)=>{
-                updateNote(url, { password: res })
+                setPending(true);
+                webSocket.emit('updateNotePassword', url, { password: res });
             })
-            setModalOpen(false)
-            toastContext?.setToast(true, 'Password created successfully')
-            auth?.setHasPassword(true);
-            auth?.setIsAuthenticated(true);
 
+            webSocket.on('updateNotePasswordResponse', () => {
+                setPending(false)
+                setModalOpen(false)
+                toastContext?.setToast(true, 'Password created successfully')
+                auth?.setHasPassword(true);
+                auth?.setIsAuthenticated(true);
+            })
         }
     }
 
@@ -119,8 +133,9 @@ export const ModalComponent = (
     }
 
     const removePassword = () =>{
-        updateNote(url, {password: ''});
+        webSocket.emit('removeNotePassword', url, { password: '' });
         auth?.setHasPassword(false);
+        setData('');
     }
 
 
@@ -282,7 +297,7 @@ export const ModalComponent = (
                                     <Divider />
 
                                     <Box p={2} display={'flex'} justifyContent={'end'} gap={2} bgcolor={'#f4f4f4'}>
-                                        <Button variant='outlined' onClick={createHandler} disabled={(data == value) || error || urlexist}>Create</Button>
+                                        <Button variant='outlined' sx={{width:'91px'}} onClick={createHandler} disabled={(data == value) || error || urlexist || pending}>{pending ? <CircularProgress size={25} /> : 'Create'}</Button>
                                         <Button variant='contained' onClick={() => setModalOpen(false)}>Cancel</Button>
                                     </Box>
                                 </>

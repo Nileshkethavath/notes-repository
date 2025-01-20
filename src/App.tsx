@@ -9,10 +9,19 @@ import ProtectedRoute from './components/ProtectedRoute'
 import {OfflineHandlerComp} from './components/OfflineHandlerComp'
 import { ToastContextProvider } from './components/ToastContext'
 import AutoCloseToast from './components/ToastComponent'
+import { webSocket } from './utils/webSocket'
+import { useEffect } from 'react'
 
 function App() {
 
   const id = generateID();
+
+  useEffect(()=>{
+
+    return () => {
+      webSocket.close();
+    }
+  }, [])
 
   return (
     <OfflineHandlerComp>
@@ -35,7 +44,7 @@ function App() {
 
         </Routes>
 
-        <AutoCloseToast/>
+          <AutoCloseToast/>
         </ToastContextProvider>
       </AuthProvider>
     </OfflineHandlerComp>
