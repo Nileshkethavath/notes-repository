@@ -45,13 +45,37 @@ export const ModalComponent = (
             if (!(error && (data != url))) {
                 setPending(true)
                 webSocket.emit('getNote', data);
-                
+                webSocket.once('getNoteResponse', (res) => {
+                    console.log(res)
+                    setPending(false)
+                    if (res.isNoteExist) {
+                        setUrlExist(true);
+                    } else {
+                        setUrlExist(false);
+                        setPending(true);
+                        webSocket.emit('updateNoteKey',url, data);
+                        webSocket.once('updateNoteKeyResponse', () => {
+                            console.log('key',data);
+                            setPending(false);
+                            navigate(`/${data}`);
+                            setModalOpen(false);
+                            toastContext?.setToast(true, 'URL updated successfully');
+                        })
+                    }
+                })
             }
         } else if (name === 'password') {
             //hash password before storing it to DB
             hashPassword(data).then((res)=>{
                 setPending(true);
                 webSocket.emit('updateNotePassword', url, { password: res });
+                webSocket.once('updateNotePasswordResponse', () => {
+                setPending(false)
+                setModalOpen(false)
+                toastContext?.setToast(true, 'Password created successfully')
+                auth?.setHasPassword(true);
+                auth?.setIsAuthenticated(true);
+            })
             })
 
             
@@ -113,47 +137,23 @@ export const ModalComponent = (
     }
 
     useEffect(()=>{
-        const getNoteResponseHandler = (res: {
-            isNoteExist: boolean;
-            note: null | any;
-        }) => {
-            console.log(res)
-            setPending(false)
-            if (res.isNoteExist) {
-                setUrlExist(true);
-            } else {
-                setUrlExist(false);
-                setPending(true);
-                webSocket.emit('updateNoteKey',url, data);
-            }
-        }
-        const updateNoteKeyResponseHandler = () => {
-            setPending(false);
-            navigate(`/${data}`);
-            setModalOpen(false);
-            toastContext?.setToast(true, 'URL updated successfully');
-        }
-        const updateNotePasswordResponseHandler = () => {
-            setPending(false)
-            setModalOpen(false)
-            toastContext?.setToast(true, 'Password created successfully')
-            auth?.setHasPassword(true);
-            auth?.setIsAuthenticated(true);
-        }
+        // const getNoteResponseHandler = 
+        // const updateNoteKeyResponseHandler = 
+        // const updateNotePasswordResponseHandler = 
 
         // if(name === 'changeUrl'){
-            webSocket.on('getNoteResponse', getNoteResponseHandler)
-            webSocket.on('updateNoteKeyResponse', updateNoteKeyResponseHandler)
+            
+            
         // }
         // else{
-            webSocket.on('updateNotePasswordResponse', updateNotePasswordResponseHandler)
+            
         // }
 
-        return () => {
-            webSocket.off('getNoteResponse', getNoteResponseHandler)
-            webSocket.off('updateNoteKeyResponse', updateNoteKeyResponseHandler);
-            webSocket.off('updateNotePasswordResponse', updateNotePasswordResponseHandler);
-        }
+        // return () => {
+        //     webSocket.off('getNoteResponse', getNoteResponseHandler)
+        //     webSocket.off('updateNoteKeyResponse', updateNoteKeyResponseHandler);
+        //     webSocket.off('updateNotePasswordResponse', updateNotePasswordResponseHandler);
+        // }
     }, [])
 
     useEffect(()=>{
