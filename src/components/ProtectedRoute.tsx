@@ -9,40 +9,40 @@ const ProtectedRoute = (props: {componentType: string, Component: React.FC}) => 
     const {id = ''} = useParams();
     const [checking, setChecking] = useState(true)
     const {componentType, Component} = props;
-    console.log(auth);
 
     function validatePattern() {
         return (id && /[A-Za-z0-9]{8,25}/.test(id));
     }
 
     useEffect(()=>{
+        const checkNoteResponseHandler = (res: {isNoteExist: boolean, hasPassword: boolean}) => {
+            setChecking(false);
+            if(res.isNoteExist){
+                auth?.setNewNote(false);
+                auth?.setHasPassword(res.hasPassword ? true : false);
+                auth?.setIsAuthenticated(res.hasPassword ? false : true);
+            }else{
+                auth?.setNewNote(true);
+                auth?.setHasPassword(false);
+                auth?.setIsAuthenticated(true);
+            }
+        }
             
-                if(!validatePattern()){
-                    auth?.setIsValid(false)
-                    console.log('auth', id, true)
-                }else{
-                    console.log('auth', id, false)
-                    auth?.setIsValid(true);
-    
-                    webSocket.emit('checkNote', id);
-    
-                    webSocket.on('checkNoteResponse', (res) => {
-                        setChecking(false);
-                        console.log('respone', res)
-                        if(res.isNoteExist){
-                            auth?.setNewNote(false);
-                            auth?.setHasPassword(res.hasPassword ? true : false);
-                            auth?.setIsAuthenticated(res.hasPassword ? false : true);
-                        }else{
-                            auth?.setNewNote(true);
-                            auth?.setHasPassword(false);
-                            auth?.setIsAuthenticated(true);
-                        }
-                    })
-                }
-            
-        }, [id])
+        if(!validatePattern()){
+            auth?.setIsValid(false)
+        }else{
+            auth?.setIsValid(true);
 
+            webSocket.emit('checkNote', id);
+
+            webSocket.on('checkNoteResponse', checkNoteResponseHandler)
+        }
+
+        return () =>{
+            webSocket.off('checkNoteResponse', checkNoteResponseHandler)
+        }
+            
+    }, [id])
 
     const redirectHandler = (type: string) => {
         if(auth){
@@ -62,10 +62,6 @@ const ProtectedRoute = (props: {componentType: string, Component: React.FC}) => 
             }
         }
     }
-
-    // if(!network.isOnline){
-    //     return <OfflineComponent/>
-    // }
 
         if(checking){
             return (
@@ -89,39 +85,3 @@ const ProtectedRoute = (props: {componentType: string, Component: React.FC}) => 
 }
 
 export default ProtectedRoute
-
-
-/*
-
-newNote = false => /home
-hasPassword = true;
-isAuthenticated = true;
-
--> home
-    check for exist => show => loading
-        -> yes
-            -> password
-                -> yes => redirect /login
-                -> no => same
-        -> no
-            -> same
-
--> login
-
-
-    check for exist => show => loading
-        -> yes
-            -> password
-                -> yes => same 
-                            -> valid => redirect /home
-                            -> invalid => same page
-                -> no => redirect /home
-        -> no
-            -> redirect /home
-
-
-
-
-    
-
-*/

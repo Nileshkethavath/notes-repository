@@ -1,7 +1,7 @@
 import { Box, Button, CircularProgress, Divider, FormHelperText, InputLabel, Modal, TextField, Typography } from '@mui/material'
 import React, { ChangeEvent, Dispatch, SetStateAction, useEffect, useRef, useState } from 'react'
 import { SvgIconProps } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import { hashPassword } from '../utils/password';
 import { useToastContext } from './ToastContext';
@@ -14,7 +14,7 @@ export const ModalComponent = (
             setValue?: Dispatch<SetStateAction<string>>, label: string, placeholder: string, Icon: React.FC<SvgIconProps>,
             title: string, name: string
         }
-) => {
+    ) => {
 
     const [data, setData] = useState(value || '')
     const [error, setError] = useState(false);
@@ -22,6 +22,7 @@ export const ModalComponent = (
     const [urlexist, setUrlExist] = useState(false)
     const [showError, setShowError] = useState(false);
     const [pending, setPending] = useState(false);
+    const {id = ''} = useParams();
     
     const auth = useAuth()
     const toastContext = useToastContext()
@@ -42,30 +43,9 @@ export const ModalComponent = (
         setShowError(false)
         if (name === 'changeUrl') {
             if (!(error && (data != url))) {
-
-                // getNote(data)
-                //     .then((response) => {
                 setPending(true)
                 webSocket.emit('getNote', data);
-                webSocket.on('getNoteResponse', (res) => {
-                        setPending(false)
-                        if (res.isDataExist) {
-                            setUrlExist(true);
-                        } else {
-                            setUrlExist(false);
-                            // updateNoteKey(url, data);
-                            setPending(true)
-                            webSocket.emit('updateNoteKey',url, data);
-                            webSocket.on('updateNoteKeyResponse', () => {
-                                setPending(false);
-                                navigate(`/${data}`)
-                                setModalOpen(false)
-                                toastContext?.setToast(true, 'URL updated successfully')
-                            })
-                        }
-                    })
-
-
+                
             }
         } else if (name === 'password') {
             //hash password before storing it to DB
@@ -74,13 +54,7 @@ export const ModalComponent = (
                 webSocket.emit('updateNotePassword', url, { password: res });
             })
 
-            webSocket.on('updateNotePasswordResponse', () => {
-                setPending(false)
-                setModalOpen(false)
-                toastContext?.setToast(true, 'Password created successfully')
-                auth?.setHasPassword(true);
-                auth?.setIsAuthenticated(true);
-            })
+            
         }
     }
 
@@ -138,6 +112,53 @@ export const ModalComponent = (
         setData('');
     }
 
+    useEffect(()=>{
+        const getNoteResponseHandler = (res: {
+            isNoteExist: boolean;
+            note: null | any;
+        }) => {
+            console.log(res)
+            setPending(false)
+            if (res.isNoteExist) {
+                setUrlExist(true);
+            } else {
+                setUrlExist(false);
+                setPending(true);
+                webSocket.emit('updateNoteKey',url, data);
+            }
+        }
+        const updateNoteKeyResponseHandler = () => {
+            setPending(false);
+            navigate(`/${data}`);
+            setModalOpen(false);
+            toastContext?.setToast(true, 'URL updated successfully');
+        }
+        const updateNotePasswordResponseHandler = () => {
+            setPending(false)
+            setModalOpen(false)
+            toastContext?.setToast(true, 'Password created successfully')
+            auth?.setHasPassword(true);
+            auth?.setIsAuthenticated(true);
+        }
+
+        if(name === 'changeUrl'){
+            webSocket.on('getNoteResponse', getNoteResponseHandler)
+            webSocket.on('updateNoteKeyResponse', updateNoteKeyResponseHandler)
+        }
+        else{
+            webSocket.on('updateNotePasswordResponse', updateNotePasswordResponseHandler)
+        }
+
+        return () => {
+            webSocket.off('getNoteResponse', getNoteResponseHandler)
+            webSocket.off('updateNoteKeyResponse', updateNoteKeyResponseHandler);
+            webSocket.off('updateNotePasswordResponse', updateNotePasswordResponseHandler);
+        }
+    }, [])
+
+    useEffect(()=>{
+        setUrlExist(false);
+    }, [id])
 
     useEffect(() => {
         if (modalOpen) {
@@ -154,9 +175,6 @@ export const ModalComponent = (
             setShowError(true)
         }
     }, [error])
-
-
-
 
     //this is used to set the updated prop value to state, 
     // if this is not done then state won't be updated.
@@ -288,7 +306,7 @@ export const ModalComponent = (
                                         {
                                             (name === 'changeUrl' && urlexist) &&
                                             <FormHelperText sx={{ color: color }}>
-                                                URL already exist
+                                                Note Id already exist
                                             </FormHelperText>
                                         }
 

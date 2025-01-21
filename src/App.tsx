@@ -17,7 +17,6 @@ function App() {
   const id = generateID();
 
   useEffect(()=>{
-
     return () => {
       webSocket.close();
     }

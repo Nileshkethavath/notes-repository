@@ -26,7 +26,7 @@ export function Home() {
   const [changeUrlModalOpen, setChangeUrlModalOpen] = useState(false)
   const [password, setPassword] = useState('');
   const [saved, setSaved] = useState(false);
-  const caretPosition = useRef(0); 
+  const [disableNewNoteBtn, setDisableNewNoteBtn] = useState(false)
   const toastContext = useToastContext();
 
   //used to determine whether the update is from others or ours.
@@ -113,6 +113,10 @@ export function Home() {
     setNoteTitle('')
     setNote('')
     setPassword('')
+    setDisableNewNoteBtn(true);
+    setTimeout(()=>{
+      setDisableNewNoteBtn(false)
+    }, 2000);
     navigate(`/${url}`, {replace:true})
 
     webSocket.emit('createNote', url);
@@ -122,10 +126,8 @@ export function Home() {
 
 
   const getOrCreateFun = () => { 
-    // console.log('getOrCreate')
       webSocket.emit('getOrCreateNote', id);
       webSocket.on('getOrCreateNoteResponse', (res) => {
-        // console.log(res)
         if(!res.isNoteCreated){
           setNote(res.note.note);
           // setNoteTitle(res.note.noteTitle)
@@ -134,6 +136,9 @@ export function Home() {
       })
   }
 
+  useEffect(()=>{
+    webSocket.emit('joinRoom',{roomId: id})
+  }, [id])
 
   useEffect(()=>{
     const timer = setTimeout(()=>{
@@ -143,7 +148,6 @@ export function Home() {
     return ()=> clearTimeout(timer);
   }, [saved]) 
   
-
   useEffect(()=>{
     getOrCreateFun();   
   },[])
@@ -158,11 +162,9 @@ export function Home() {
       setSaved(true);
       setNote(data.note)
       othersUpdatesRef.current = true;
-      console.log('received update')
     }
 
     if(!othersUpdatesRef.current){
-      console.log('send for update', note)
       webSocket.emit('updateNote', id, {note: note});
     }
 
@@ -246,7 +248,6 @@ export function Home() {
 
           if(notesContainer && toolBar && quillContainer){
             quillContainer.setAttribute('style',`max-height: ${notesContainer.clientHeight - toolBar.clientHeight - 48}px; flex: 1 1 0%;`);
-            console.log('height',notesContainer.clientHeight - toolBar.clientHeight - 48, quillContainer.getAttribute('style'))
           }
       },100)
     }
@@ -437,11 +438,12 @@ export function Home() {
 
 
           <Tooltip
-            title='new note'
+            title='New Note'
             arrow
             slots={{
               transition: Zoom
             }}
+            disableHoverListener={disableNewNoteBtn}
           >
 
             <Box
@@ -467,7 +469,7 @@ export function Home() {
                     backgroundColor: '#cbeaf6'
                   }
                 }}
-
+                disabled={disableNewNoteBtn}
                 onClick={newNoteHandler}
               >
                 <AddIcon sx={{
@@ -573,11 +575,9 @@ export function Home() {
             </Box>
           </Tooltip>
 
-          
-
 
           <Tooltip
-            title='password'
+            title='Password'
             arrow
             slots={{
               transition: Zoom
