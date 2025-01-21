@@ -1,4 +1,4 @@
-import { Box, Button, CircularProgress, Divider, FormHelperText, InputLabel, Modal, TextField, Typography } from '@mui/material'
+import { Box, Button, CircularProgress, Divider, FormHelperText, InputLabel, List, ListItem, ListItemText, Modal, TextField, Typography } from '@mui/material'
 import React, { ChangeEvent, Dispatch, SetStateAction, useEffect, useRef, useState } from 'react'
 import { SvgIconProps } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -46,7 +46,6 @@ export const ModalComponent = (
                 setPending(true)
                 webSocket.emit('getNote', data);
                 webSocket.once('getNoteResponse', (res) => {
-                    console.log(res)
                     setPending(false)
                     if (res.isNoteExist) {
                         setUrlExist(true);
@@ -55,7 +54,6 @@ export const ModalComponent = (
                         setPending(true);
                         webSocket.emit('updateNoteKey',url, data);
                         webSocket.once('updateNoteKeyResponse', () => {
-                            console.log('key',data);
                             setPending(false);
                             navigate(`/${data}`);
                             setModalOpen(false);
@@ -135,26 +133,6 @@ export const ModalComponent = (
         auth?.setHasPassword(false);
         setData('');
     }
-
-    useEffect(()=>{
-        // const getNoteResponseHandler = 
-        // const updateNoteKeyResponseHandler = 
-        // const updateNotePasswordResponseHandler = 
-
-        // if(name === 'changeUrl'){
-            
-            
-        // }
-        // else{
-            
-        // }
-
-        // return () => {
-        //     webSocket.off('getNoteResponse', getNoteResponseHandler)
-        //     webSocket.off('updateNoteKeyResponse', updateNoteKeyResponseHandler);
-        //     webSocket.off('updateNotePasswordResponse', updateNotePasswordResponseHandler);
-        // }
-    }, [])
 
     useEffect(()=>{
         setUrlExist(false);
@@ -262,10 +240,7 @@ export const ModalComponent = (
                                         variant='h5'
                                         p={2}
                                         bgcolor={'#f4f4f4'}
-                                        sx={{'@media (max-width: 450px)':{
-                                            padding:'8px',
-                                            fontSize:"1.2rem"
-                                        }}} 
+                                        
                                     >
                                         <Icon
                                             sx={{
@@ -280,25 +255,14 @@ export const ModalComponent = (
 
                                     <Divider />
 
-                                    <Box p={2} sx={{'@media (max-width: 450px)':{
-                                                    padding:'8px'
-                                                }}}>
-                                        <InputLabel htmlFor={name}>{label}</InputLabel>
+                                    <Box p={2}>
+                                        <InputLabel htmlFor={name} sx={{fontSize:'0.8rem', paddingLeft:'4px'}}>{label}</InputLabel>
                                         <TextField
                                             id={name}
                                             type={name === 'changeUrl' ? 'text' : 'password'}
                                             fullWidth
                                             placeholder={`e.g: ${placeholder}`}
                                             error={error}
-                                            sx={{ 
-                                                py: '8px',
-                                                '@media (max-width: 450px)':{
-                                                    '& .MuiInputBase-root': {
-                                                        height: 40, 
-                                                    },
-                                                    
-                                                } 
-                                            }}
                                             value={data}
                                             inputRef={inputRef}
                                             onChange={handleChange}
@@ -312,22 +276,68 @@ export const ModalComponent = (
 
                                         {showError &&
                                             <FormHelperText>
-                                                <ul>
-                                                    <li style={{ color: errorStates[0] ? 'green' : 'red' }}>Must be at least 8 characters long.</li>
-                                                    <li style={{ color: errorStates[1] ? 'green' : 'red' }}>
-                                                        {
-                                                            name === 'password' ? 'Must Include at least one uppercase and lowercase letter.' : 'Must Include only letters and numbers.'
-                                                        }
-                                                    </li>
-                                                    {name === 'password' && <li style={{ color: errorStates[2] ? 'green' : 'red' }}>Must Include at least one number.</li>}
-                                                    {name === 'password' && <li style={{ color: errorStates[3] ? 'green' : 'red' }}>Must Include at least one special character.</li>}
-                                                </ul>
+                                                <List sx={{listStyleType:'disc',margin:'0px',padding:'0px 0px 0px 16px'}}>
+                                                    <ListItem sx={{
+                                                        margin:'0px', 
+                                                        padding:'0px',
+                                                        '& .MuiTypography-body1':{
+                                                            fontSize:'0.75rem'
+                                                        },
+                                                        display:'list-item'
+                                                        }}>
+                                                        <ListItemText sx={{ color: errorStates[0] ? 'green' : 'red' }}>Must be at least 8 characters long.</ListItemText>
+                                                    </ListItem>
+                                                    <ListItem sx={{
+                                                        margin:'0px', 
+                                                        padding:'0px',
+                                                        '& .MuiTypography-body1':{
+                                                            fontSize:'0.75rem'
+                                                        },
+                                                        display:'list-item'
+                                                        }}>
+                                                        <ListItemText sx={{ color: errorStates[1] ? 'green' : 'red' }}>
+                                                            {
+                                                                name === 'password' ? 'Must Include at least one uppercase and lowercase letter.' : 'Must Include only letters and numbers.'
+                                                            }
+                                                        </ListItemText>
+                                                    </ListItem>
+                                                    {
+                                                        name === 'password' &&
+                                                        <ListItem sx={{
+                                                            margin:'0px', 
+                                                            padding:'0px',
+                                                            '& .MuiTypography-body1':{
+                                                                fontSize:'0.75rem'
+                                                            },
+                                                            display:'list-item'
+                                                            }}>
+                                                            <ListItemText sx={{ color: errorStates[2] ? 'green' : 'red' }}>
+                                                                Must Include at least one number.
+                                                            </ListItemText>
+                                                        </ListItem> 
+                                                    }
+                                                    {
+                                                        name === 'password' && 
+                                                        <ListItem sx={{
+                                                            margin:'0px', 
+                                                            padding:'0px',
+                                                            '& .MuiTypography-body1':{
+                                                                fontSize:'0.75rem'
+                                                            },
+                                                            display:'list-item'
+                                                            }}>
+                                                            <ListItemText sx={{ color: errorStates[3] ? 'green' : 'red' }}>
+                                                            Must Include at least one special character.
+                                                            </ListItemText>
+                                                        </ListItem>
+                                                    }
+                                                </List>
                                             </FormHelperText>
                                         }
                                         {
                                             (name === 'changeUrl' && urlexist) &&
                                             <FormHelperText sx={{ color: color }}>
-                                                Note Id already exist
+                                                URL already exist
                                             </FormHelperText>
                                         }
 

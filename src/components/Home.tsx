@@ -14,6 +14,7 @@ import generateID from '../utils/generateID';
 import { useDebounce } from '../custom-hooks/useDebounce';
 import { useToastContext } from './ToastContext';
 import { webSocket } from '../utils/webSocket';
+import {debounce} from 'lodash'
 
 
 export function Home() {
@@ -25,7 +26,6 @@ export function Home() {
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [changeUrlModalOpen, setChangeUrlModalOpen] = useState(false)
   const [password, setPassword] = useState('');
-  const [saved, setSaved] = useState(false);
   const [disableNewNoteBtn, setDisableNewNoteBtn] = useState(false)
   const toastContext = useToastContext();
 
@@ -35,6 +35,8 @@ export function Home() {
   //To prevent the initial update of debouncedNote useEffect.
   //causing un-necessary re-renders
   const initialMountRef = useRef(true);
+
+  const saveRef = useRef<HTMLSpanElement>(null);
   
   const debouncedNote = useDebounce(note, 100);
   const debouncedNoteTitle = useDebounce(noteTitle, 100);
@@ -140,13 +142,6 @@ export function Home() {
     webSocket.emit('joinRoom',{roomId: id})
   }, [id])
 
-  useEffect(()=>{
-    const timer = setTimeout(()=>{
-      setSaved(false)
-    },500)
-
-    return ()=> clearTimeout(timer);
-  }, [saved]) 
   
   useEffect(()=>{
     getOrCreateFun();   
@@ -159,19 +154,32 @@ export function Home() {
     }
 
     const handleUpdateNoteResponse = (data: { note: string }) => {
-      setSaved(true);
       setNote(data.note)
       othersUpdatesRef.current = true;
+    }
+
+    const handleUpdateSuccess = () => {
+      if (saveRef.current) {
+        saveRef.current.style.color = '#05d539e3';
+        const debouncedResetColor = debounce(() => {
+          if (saveRef.current) {
+            saveRef.current.style.color = 'black';
+          }
+        }, 200);
+        debouncedResetColor();
+      }
     }
 
     if(!othersUpdatesRef.current){
       webSocket.emit('updateNote', id, {note: note});
     }
 
-    webSocket.on('updateNoteResponse', handleUpdateNoteResponse)
+    webSocket.on('updateNoteResponse', handleUpdateNoteResponse);
+    webSocket.on('updateNoteSuccess',handleUpdateSuccess);
 
     return () => {
       webSocket.off('updateNoteResponse', handleUpdateNoteResponse)
+      webSocket.off('updateNoteSuccess', handleUpdateSuccess)
     }
   },[debouncedNote])
 
@@ -324,18 +332,20 @@ export function Home() {
       ))
     )
   }, [])
-
   return (
     <Stack
       sx={{
         width: '100vw',
         height: '100vh',
         boxSizing: 'border-box',
-        backgroundColor: '#00000012'
+        backgroundColor: '#00000012',
+        '@media (max-width: 450px)':{
+          gap: 0
+        }
       }}
       py={5}
       px={{
-        xs:0,
+        xs:2,
         sm:5,
         md:10,
         lg:15,
@@ -348,9 +358,6 @@ export function Home() {
           flex:'0 1 auto',
           display: 'flex',
           gap: theme.spacing(1),
-          // padding: '0px 16px',
-          // backgroundColor: 'inherit',
-          // boxShadow: '0px 0px 5px -2px',
           borderRadius: '8px'
         })}
       >
@@ -358,19 +365,11 @@ export function Home() {
           variant='h5'
           fontWeight={'700'}
           letterSpacing={'-1px'}
-          px={3}
-          sx={{
-            '@media (max-width: 700px)':{
-              paddingLeft: 3,
-              paddingRight: 0
-            },
-            '@media (max-width: 340px)':{
-              padding: 0
-            }
-          }}
+          pl={3}
+
         >
-          Notes
-          <EditNoteIcon
+          <Typography ref={saveRef} variant='h5' component={'span'} sx={{fontWeight:'700'}}>N</Typography>otes
+          {/* <EditNoteIcon
             sx={(theme) => ({
               verticalAlign: 'middle',
               paddingLeft: theme.spacing(1),
@@ -378,52 +377,8 @@ export function Home() {
               color: saved ? '#228B22' : 'black',
               transition: 'all 100ms'
             })}
-          />
+          /> */}
         </Typography>
-
-        {/* <Box
-          sx={(theme) => ({
-            flexGrow: 1,
-            display: 'inline-flex',
-            gap: theme.spacing(1),
-            justifyContent: 'center',
-            height: theme.spacing(5),
-            '@media (max-width: 700px)':{
-              display:'none'
-            }
-          })}
-        >
-          <TextField
-            type='text'
-            placeholder='Name Your Note'
-            fullWidth
-
-            sx={(theme) => ({
-              height: theme.spacing(5),
-              border: '0px',
-              boxShadow: '0px 0px 3px #0000007a',
-              '& .MuiOutlinedInput-root': {
-                height: theme.spacing(5),
-                '& input': {
-                  height: theme.spacing(5),
-                  boxSizing: 'border-box',
-                  textTransform: 'capitalize',
-                },
-                '& input:focus + fieldset, & input:hover + fieldset': {
-                  // border: '2px solid rgb(25, 118, 210)'
-                  boxShadow: '0px 0px 3px #0000007a'
-                },
-              },
-              '& fieldset': {
-                padding: '0px',
-                border: '0px'
-              }
-            })}
-
-            value={noteTitle}
-            onChange={titleChangeHandler}
-          />
-        </Box> */}
 
         <Box sx={(theme) => ({
           display: 'inline-flex',
@@ -431,8 +386,8 @@ export function Home() {
           justifyContent: 'right',
           height: theme.spacing(5),
           flex: 1,
-          '@media (max-width: 700px)':{
-            flex: 1
+          '@media (max-width: 450px)':{
+            gap: 0
           }
         })}>
 
@@ -624,7 +579,7 @@ export function Home() {
             value={''}
             setValue={setPassword}
             label={'Enter your password'} 
-            placeholder={'Ricky_Dave@123'} 
+            placeholder={'RickyDave@123'} 
             Icon={LockIcon} 
             title={'Password Protect'}
             name={'password'}

@@ -69,5 +69,29 @@
 }
 
 .ql-editor:focus{
-    box-shadow: 0px 0px 6px -2px;
+    box-shadow: 0px 0px 6px -3px;
 }
+
+
+@media screen and (max-width: 450px) {
+    #custom-toolbar{
+        display: none;
+    }
+
+    .notes-container{
+        box-shadow: none !important;
+        background-color: #ededed !important;
+    }
+
+    .quill{
+        background-color: white;
+        margin: 0px;
+    }
+}
+
+.MuiSnackbar-root {
+    pointer-events: none; 
+  }
+  .MuiSnackbarContent-root {
+    pointer-events: all; 
+  }

@@ -33,6 +33,9 @@ export const Error = () => {
             '90%': { transform: 'translateX(-2px)' },
             '100%': { transform: 'translateX(1px)' },
           },
+          '@media (max-width: 450px)':{
+            width:'90%'
+          }
         })}
       >
         {/* Header */}

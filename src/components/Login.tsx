@@ -42,15 +42,23 @@ export const Login = () => {
             alignItems: 'center', backgroundColor: '#ededed'
         }}>
             <form onSubmit={handleSubmit(submitHandler)}>
-                <Box sx={{ width: '100%', maxWidth: '450px', 
-                        backgroundColor: 'white', borderRadius: '4px', 
-                        boxShadow: '0px 2px 10px -2px black', padding: '16px' 
+                <Box sx={{ 
+                        width: '100%', 
+                        maxWidth: '450px', 
+                        backgroundColor: 'white', 
+                        borderRadius: '4px', 
+                        boxShadow: '0px 2px 10px -2px black', 
+                        padding: '16px',
+                        margin:'auto',
+                        '@media (max-width: 450px)':{
+                            width:'90%'
+                        }
                         }}>
                     <Typography
                         variant='h6'
                         fontWeight={'700'}
                     >
-                        C Notes
+                        Notes
                         <EditNote
                             sx={() => ({
                                 verticalAlign: 'middle',

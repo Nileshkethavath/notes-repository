@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Navigate, useLocation, useParams } from 'react-router-dom'
+import { Navigate, useParams } from 'react-router-dom'
 import CircularProgress from '@mui/material/CircularProgress';
 import { useAuth } from './AuthContext';
 import { webSocket } from '../utils/webSocket'
@@ -27,9 +27,10 @@ const ProtectedRoute = (props: {componentType: string, Component: React.FC}) => 
                 auth?.setIsAuthenticated(true);
             }
         }
-            
+
         if(!validatePattern()){
             auth?.setIsValid(false)
+            setChecking(false);
         }else{
             auth?.setIsValid(true);
 
@@ -48,16 +49,16 @@ const ProtectedRoute = (props: {componentType: string, Component: React.FC}) => 
         if(auth){
             const {newNote, hasPassword, isAuthenticated} = auth;
             if(newNote){
-                return type === 'home' ? <Component/> : <Navigate to={`/${id}`}/>
+                return type === 'home' ? <Component/> : <Navigate to={`/${id}`} replace/>
             }else{
                 if(hasPassword){
                     if(isAuthenticated){
-                        return type === 'home' ? <Component/> : <Navigate to={`/${id}`}/>
+                        return type === 'home' ? <Component/> : <Navigate to={`/${id}`} replace/>
                     }else{
-                        return type === 'home' ? <Navigate to={`/login/${id}`} /> : <Component/>
+                        return type === 'home' ? <Navigate to={`/login/${id}`} replace/> : <Component/>
                     }
                 }else{
-                    return type === 'home' ? <Component/> : <Navigate to={`/${id}`}/>
+                    return type === 'home' ? <Component/> : <Navigate to={`/${id}`} replace/>
                 }
             }
         }
