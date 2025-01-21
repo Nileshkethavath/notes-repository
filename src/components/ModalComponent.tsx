@@ -141,13 +141,13 @@ export const ModalComponent = (
             auth?.setIsAuthenticated(true);
         }
 
-        if(name === 'changeUrl'){
+        // if(name === 'changeUrl'){
             webSocket.on('getNoteResponse', getNoteResponseHandler)
             webSocket.on('updateNoteKeyResponse', updateNoteKeyResponseHandler)
-        }
-        else{
+        // }
+        // else{
             webSocket.on('updateNotePasswordResponse', updateNotePasswordResponseHandler)
-        }
+        // }
 
         return () => {
             webSocket.off('getNoteResponse', getNoteResponseHandler)
@@ -202,7 +202,7 @@ export const ModalComponent = (
                 >
                     <Box
                         sx={(theme) => ({
-                            width: "450px",
+                            width: '450px',
                             backgroundColor: "white",
                             borderRadius: '4px',
                             animation: 'jump 600ms ease-out',
@@ -216,6 +216,9 @@ export const ModalComponent = (
                                 '75%': { transform: 'scale(1.01)' },
                                 '90%': { transform: 'scale(1)' },
                             },
+                            '@media (max-width: 450px)':{
+                                width:'90%'
+                            }
                         })}
                     >
 
@@ -259,10 +262,17 @@ export const ModalComponent = (
                                         variant='h5'
                                         p={2}
                                         bgcolor={'#f4f4f4'}
+                                        sx={{'@media (max-width: 450px)':{
+                                            padding:'8px',
+                                            fontSize:"1.2rem"
+                                        }}} 
                                     >
                                         <Icon
                                             sx={{
-                                                verticalAlign: 'text-top'
+                                                verticalAlign: 'text-top',
+                                               '@media (max-width: 450px)':{
+                                                    fontSize:"1.4rem"
+                                                }
                                             }}
                                         />
                                         {title}
@@ -270,7 +280,9 @@ export const ModalComponent = (
 
                                     <Divider />
 
-                                    <Box p={2}>
+                                    <Box p={2} sx={{'@media (max-width: 450px)':{
+                                                    padding:'8px'
+                                                }}}>
                                         <InputLabel htmlFor={name}>{label}</InputLabel>
                                         <TextField
                                             id={name}
@@ -278,7 +290,15 @@ export const ModalComponent = (
                                             fullWidth
                                             placeholder={`e.g: ${placeholder}`}
                                             error={error}
-                                            sx={{ py: '8px' }}
+                                            sx={{ 
+                                                py: '8px',
+                                                '@media (max-width: 450px)':{
+                                                    '& .MuiInputBase-root': {
+                                                        height: 40, 
+                                                    },
+                                                    
+                                                } 
+                                            }}
                                             value={data}
                                             inputRef={inputRef}
                                             onChange={handleChange}
@@ -286,6 +306,7 @@ export const ModalComponent = (
                                                 inputRef.current?.focus()
                                                 inputRef.current?.select()
                                             }}
+                                        
                                         />
 
 
