@@ -1,4 +1,4 @@
-import { Typography, TextField, Box, Stack, Tooltip, Zoom, Button, Fade } from '@mui/material'
+import { Typography, Box, Stack, Tooltip, Zoom, Button } from '@mui/material'
 import React, { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { v4 as uuid } from 'uuid'
 import AddIcon from '@mui/icons-material/Add';
@@ -25,22 +25,13 @@ export function Home() {
   const [note, setNote] = useState<string>('')
   const [passwordModalOpen, setPasswordModalOpen] = useState(false)
   const [changeUrlModalOpen, setChangeUrlModalOpen] = useState(false)
-  const [password, setPassword] = useState('');
   const [disableNewNoteBtn, setDisableNewNoteBtn] = useState(false)
   const toastContext = useToastContext();
-
-  //used to determine whether the update is from others or ours.
-  const othersUpdatesRef = useRef(false);
-
-  //To prevent the initial update of debouncedNote useEffect.
-  //causing un-necessary re-renders
-  const initialMountRef = useRef(true);
-
-  const saveRef = useRef<HTMLSpanElement>(null);
-  
+  const othersUpdatesRef = useRef(true);
+  const saveRef = useRef<HTMLSpanElement>(null); //used to determine whether the update is from others or ours.
   const debouncedNote = useDebounce(note, 100);
-  const debouncedNoteTitle = useDebounce(noteTitle, 100);
   const quillRef = useRef<ReactQuill | null>(null);
+
 
   const modules = {
     toolbar: {
@@ -112,9 +103,7 @@ export function Home() {
   const newNoteHandler = () => {
     
     const url = generateID();
-    setNoteTitle('')
     setNote('')
-    setPassword('')
     setDisableNewNoteBtn(true);
     setTimeout(()=>{
       setDisableNewNoteBtn(false)
@@ -126,14 +115,12 @@ export function Home() {
 
   }
 
-
   const getOrCreateFun = () => { 
       webSocket.emit('getOrCreateNote', id);
       webSocket.on('getOrCreateNoteResponse', (res) => {
         if(!res.isNoteCreated){
           setNote(res.note.note);
           // setNoteTitle(res.note.noteTitle)
-          setPassword(res.note.password)
         }
       })
   }
@@ -142,17 +129,12 @@ export function Home() {
     webSocket.emit('joinRoom',{roomId: id})
   }, [id])
 
-  
   useEffect(()=>{
     getOrCreateFun();   
   },[])
 
   useEffect(()=>{
-    if(initialMountRef.current){
-      initialMountRef.current = false;
-      return ;
-    }
-
+    
     const handleUpdateNoteResponse = (data: { note: string }) => {
       setNote(data.note)
       othersUpdatesRef.current = true;
@@ -476,7 +458,7 @@ export function Home() {
             </Box>
           </Tooltip>
 
-          <ModalComponent
+          {changeUrlModalOpen && <ModalComponent
             modalOpen={changeUrlModalOpen} 
             setModalOpen={setChangeUrlModalOpen}
             url={id}
@@ -486,7 +468,7 @@ export function Home() {
             Icon={EditOutlinedIcon} 
             title={'Change URL'}
             name={'changeUrl'}
-          />
+          />}
 
 
           <Tooltip
@@ -572,18 +554,17 @@ export function Home() {
           </Tooltip>
 
 
-          <ModalComponent
+          {passwordModalOpen && <ModalComponent
             modalOpen={passwordModalOpen} 
             setModalOpen={setPasswordModalOpen} 
             url={id}
             value={''}
-            setValue={setPassword}
             label={'Enter your password'} 
             placeholder={'RickyDave@123'} 
             Icon={LockIcon} 
             title={'Password Protect'}
             name={'password'}
-          />
+          />}
 
 
         </Box>
@@ -626,4 +607,4 @@ export function Home() {
   )
 }
 
-export default Home
+export default React.memo(Home)

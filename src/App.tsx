@@ -10,13 +10,14 @@ import {OfflineHandlerComp} from './components/OfflineHandlerComp'
 import { ToastContextProvider } from './components/ToastContext'
 import AutoCloseToast from './components/ToastComponent'
 import { webSocket } from './utils/webSocket'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 function App() {
 
   const id = generateID();
 
   useEffect(()=>{
+    document.title = 'Notes'
     return () => {
       webSocket.close();
     }
@@ -26,22 +27,22 @@ function App() {
     <OfflineHandlerComp>
       <AuthProvider>
         <ToastContextProvider>
-        <Routes>
+          <Routes>
 
-          {/* public routes */}
-          <Route path='/' element={<Navigate to={`/${id}`} />} />
+            {/* public routes */}
+            <Route path='/' element={<Navigate to={`/${id}`} />} />
 
-          {/* invalid route */}
-          <Route path='/invalid' element={<Error />} />
+            {/* invalid route */}
+            <Route path='/invalid' element={<Error />} />
 
-          {/* private routes */}
-          <Route path='/:id' element={<ProtectedRoute componentType='home' Component={Home} />} />
-          <Route path='/login/:id' element={<ProtectedRoute componentType='login' Component={Login} />} />
+            {/* private routes */}
+            <Route path='/:id' element={<ProtectedRoute componentType='home' Component={Home} />} />
+            <Route path='/login/:id' element={<ProtectedRoute componentType='login' Component={Login} />} />
 
-          {/* invalid routes */}
-          <Route path='*' element={<Navigate to={'/invalid'} replace={true} />} />
+            {/* invalid routes */}
+            <Route path='*' element={<Navigate to={'/invalid'} replace={true} />} />
 
-        </Routes>
+          </Routes>
 
           <AutoCloseToast/>
         </ToastContextProvider>
@@ -49,5 +50,6 @@ function App() {
     </OfflineHandlerComp>
   )
 }
+
 
 export default App;

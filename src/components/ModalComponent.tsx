@@ -1,5 +1,5 @@
 import { Box, Button, CircularProgress, Divider, FormHelperText, InputLabel, List, ListItem, ListItemText, Modal, TextField, Typography } from '@mui/material'
-import React, { ChangeEvent, Dispatch, SetStateAction, useEffect, useRef, useState } from 'react'
+import React, { ChangeEvent, Dispatch, SetStateAction, useCallback, useEffect, useRef, useState } from 'react'
 import { SvgIconProps } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from './AuthContext';
@@ -8,13 +8,13 @@ import { useToastContext } from './ToastContext';
 import { webSocket } from '../utils/webSocket';
 
 export const ModalComponent = (
-    { modalOpen, setModalOpen, url, value, setValue, label, placeholder, Icon, title, name }:
+    { modalOpen, setModalOpen, url, value, label, placeholder, Icon, title, name }:
         {
             modalOpen: boolean, setModalOpen: Dispatch<SetStateAction<boolean>>, url: string, value?: string,
-            setValue?: Dispatch<SetStateAction<string>>, label: string, placeholder: string, Icon: React.FC<SvgIconProps>,
+            label: string, placeholder: string, Icon: React.FC<SvgIconProps>,
             title: string, name: string
         }
-    ) => {
+) => {
 
     const [data, setData] = useState(value || '')
     const [error, setError] = useState(false);
@@ -22,14 +22,15 @@ export const ModalComponent = (
     const [urlexist, setUrlExist] = useState(false)
     const [showError, setShowError] = useState(false);
     const [pending, setPending] = useState(false);
-    const {id = ''} = useParams();
-    
+    const { id = '' } = useParams();
+
     const auth = useAuth()
     const toastContext = useToastContext()
     const navigate = useNavigate();
     const inputRef = useRef<HTMLInputElement>(null);
     const color = '#d32f2f'
 
+    console.log('modal rendered', name)
 
     const handleClose = (event: React.MouseEvent, reason: "backdropClick" | "escapeKeyDown") => {
         if (reason === "backdropClick" || reason === "escapeKeyDown") {
@@ -37,7 +38,7 @@ export const ModalComponent = (
         }
 
         setModalOpen(false)
-    };
+    }
 
     const createHandler = () => {
         setShowError(false)
@@ -52,7 +53,7 @@ export const ModalComponent = (
                     } else {
                         setUrlExist(false);
                         setPending(true);
-                        webSocket.emit('updateNoteKey',url, data);
+                        webSocket.emit('updateNoteKey', url, data);
                         webSocket.once('updateNoteKeyResponse', () => {
                             setPending(false);
                             navigate(`/${data}`);
@@ -64,19 +65,19 @@ export const ModalComponent = (
             }
         } else if (name === 'password') {
             //hash password before storing it to DB
-            hashPassword(data).then((res)=>{
+            hashPassword(data).then((res) => {
                 setPending(true);
                 webSocket.emit('updateNotePassword', url, { password: res });
                 webSocket.once('updateNotePasswordResponse', () => {
-                setPending(false)
-                setModalOpen(false)
-                toastContext?.setToast(true, 'Password created successfully')
-                auth?.setHasPassword(true);
-                auth?.setIsAuthenticated(true);
-            })
+                    setPending(false)
+                    setModalOpen(false)
+                    toastContext?.setToast(true, 'Password created successfully')
+                    auth?.setHasPassword(true);
+                    auth?.setIsAuthenticated(true);
+                })
             })
 
-            
+
         }
     }
 
@@ -128,13 +129,13 @@ export const ModalComponent = (
         }
     }
 
-    const removePassword = () =>{
+    const removePassword = () => {
         webSocket.emit('removeNotePassword', url, { password: '' });
         auth?.setHasPassword(false);
         setData('');
     }
 
-    useEffect(()=>{
+    useEffect(() => {
         setUrlExist(false);
     }, [id])
 
@@ -194,8 +195,8 @@ export const ModalComponent = (
                                 '75%': { transform: 'scale(1.01)' },
                                 '90%': { transform: 'scale(1)' },
                             },
-                            '@media (max-width: 450px)':{
-                                width:'90%'
+                            '@media (max-width: 450px)': {
+                                width: '90%'
                             }
                         })}
                     >
@@ -218,7 +219,7 @@ export const ModalComponent = (
                                     </Typography>
 
                                     <Divider />
-                                    
+
                                     <Box p={2}>
                                         <Typography>Existing password found. Would you like to remove it?</Typography>
                                     </Box>
@@ -240,13 +241,13 @@ export const ModalComponent = (
                                         variant='h5'
                                         p={2}
                                         bgcolor={'#f4f4f4'}
-                                        
+
                                     >
                                         <Icon
                                             sx={{
                                                 verticalAlign: 'text-top',
-                                               '@media (max-width: 450px)':{
-                                                    fontSize:"1.4rem"
+                                                '@media (max-width: 450px)': {
+                                                    fontSize: "1.4rem"
                                                 }
                                             }}
                                         />
@@ -256,7 +257,7 @@ export const ModalComponent = (
                                     <Divider />
 
                                     <Box p={2}>
-                                        <InputLabel htmlFor={name} sx={{fontSize:'0.8rem', paddingLeft:'4px'}}>{label}</InputLabel>
+                                        <InputLabel htmlFor={name} sx={{ fontSize: '0.8rem', paddingLeft: '4px' }}>{label}</InputLabel>
                                         <TextField
                                             id={name}
                                             type={name === 'changeUrl' ? 'text' : 'password'}
@@ -270,31 +271,31 @@ export const ModalComponent = (
                                                 inputRef.current?.focus()
                                                 inputRef.current?.select()
                                             }}
-                                        
+
                                         />
 
 
                                         {showError &&
                                             <FormHelperText>
-                                                <List sx={{listStyleType:'disc',margin:'0px',padding:'0px 0px 0px 16px'}}>
+                                                <List sx={{ listStyleType: 'disc', margin: '0px', padding: '0px 0px 0px 16px' }}>
                                                     <ListItem sx={{
-                                                        margin:'0px', 
-                                                        padding:'0px',
-                                                        '& .MuiTypography-body1':{
-                                                            fontSize:'0.75rem'
+                                                        margin: '0px',
+                                                        padding: '0px',
+                                                        '& .MuiTypography-body1': {
+                                                            fontSize: '0.75rem'
                                                         },
-                                                        display:'list-item'
-                                                        }}>
+                                                        display: 'list-item'
+                                                    }}>
                                                         <ListItemText sx={{ color: errorStates[0] ? 'green' : 'red' }}>Must be at least 8 characters long.</ListItemText>
                                                     </ListItem>
                                                     <ListItem sx={{
-                                                        margin:'0px', 
-                                                        padding:'0px',
-                                                        '& .MuiTypography-body1':{
-                                                            fontSize:'0.75rem'
+                                                        margin: '0px',
+                                                        padding: '0px',
+                                                        '& .MuiTypography-body1': {
+                                                            fontSize: '0.75rem'
                                                         },
-                                                        display:'list-item'
-                                                        }}>
+                                                        display: 'list-item'
+                                                    }}>
                                                         <ListItemText sx={{ color: errorStates[1] ? 'green' : 'red' }}>
                                                             {
                                                                 name === 'password' ? 'Must Include at least one uppercase and lowercase letter.' : 'Must Include only letters and numbers.'
@@ -304,30 +305,30 @@ export const ModalComponent = (
                                                     {
                                                         name === 'password' &&
                                                         <ListItem sx={{
-                                                            margin:'0px', 
-                                                            padding:'0px',
-                                                            '& .MuiTypography-body1':{
-                                                                fontSize:'0.75rem'
+                                                            margin: '0px',
+                                                            padding: '0px',
+                                                            '& .MuiTypography-body1': {
+                                                                fontSize: '0.75rem'
                                                             },
-                                                            display:'list-item'
-                                                            }}>
+                                                            display: 'list-item'
+                                                        }}>
                                                             <ListItemText sx={{ color: errorStates[2] ? 'green' : 'red' }}>
                                                                 Must Include at least one number.
                                                             </ListItemText>
-                                                        </ListItem> 
+                                                        </ListItem>
                                                     }
                                                     {
-                                                        name === 'password' && 
+                                                        name === 'password' &&
                                                         <ListItem sx={{
-                                                            margin:'0px', 
-                                                            padding:'0px',
-                                                            '& .MuiTypography-body1':{
-                                                                fontSize:'0.75rem'
+                                                            margin: '0px',
+                                                            padding: '0px',
+                                                            '& .MuiTypography-body1': {
+                                                                fontSize: '0.75rem'
                                                             },
-                                                            display:'list-item'
-                                                            }}>
+                                                            display: 'list-item'
+                                                        }}>
                                                             <ListItemText sx={{ color: errorStates[3] ? 'green' : 'red' }}>
-                                                            Must Include at least one special character.
+                                                                Must Include at least one special character.
                                                             </ListItemText>
                                                         </ListItem>
                                                     }
@@ -346,7 +347,7 @@ export const ModalComponent = (
                                     <Divider />
 
                                     <Box p={2} display={'flex'} justifyContent={'end'} gap={2} bgcolor={'#f4f4f4'}>
-                                        <Button variant='outlined' sx={{width:'91px'}} onClick={createHandler} disabled={(data == value) || error || urlexist || pending}>{pending ? <CircularProgress size={25} /> : 'Create'}</Button>
+                                        <Button variant='outlined' sx={{ width: '91px' }} onClick={createHandler} disabled={(data == value) || error || urlexist || pending}>{pending ? <CircularProgress size={25} /> : 'Create'}</Button>
                                         <Button variant='contained' onClick={() => setModalOpen(false)}>Cancel</Button>
                                     </Box>
                                 </>

@@ -13,7 +13,7 @@ export const Login = () => {
     const {register, handleSubmit, watch} = useForm<{password: string}>()
     const [pending, setPending] = useState(false)
 
-    const passwordWatch = watch('password'); 
+    const passwordWatch = watch('password');
 
     useEffect(()=>{
         if(valid){

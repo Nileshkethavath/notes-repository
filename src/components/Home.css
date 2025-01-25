@@ -92,6 +92,7 @@
 .MuiSnackbar-root {
     pointer-events: none; 
   }
-  .MuiSnackbarContent-root {
+  
+.MuiSnackbarContent-root {
     pointer-events: all; 
-  }
+}

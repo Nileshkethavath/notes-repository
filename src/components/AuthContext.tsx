@@ -15,8 +15,6 @@ interface AuthContextType {
     setHasPassword: Dispatch<SetStateAction<boolean | null>>;
     setIsValid: Dispatch<SetStateAction<boolean | null>>;
     isValid: boolean | null;
-    setPending: Dispatch<SetStateAction<boolean>>;
-    pending: boolean | null;
 }
 
 interface AuthProviderProps {
@@ -34,9 +32,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const [newNote, setNewNote] = useState<boolean | null>(null);
     const [hasPassword, setHasPassword] = useState<boolean | null>(null);
     const [isValid, setIsValid] = useState<boolean | null>(null);
-    const [pending, setPending] = useState(false);
     
-
 
     const login = (url: string, password: string) => {
         authNameSpace.emit('getNote', url);
@@ -65,23 +61,13 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             
     }
 
+    const memoizedAuthState = React.useMemo(()=>({login, logout, isAuthenticated, setIsAuthenticated, newNote, setNewNote, hasPassword, setHasPassword, isValid, setIsValid}), [isAuthenticated,newNote,hasPassword,isValid])
+
     return (
-        <AuthContext.Provider value={{login, logout, isAuthenticated, setIsAuthenticated, newNote, setNewNote, hasPassword, setHasPassword, isValid, setIsValid, pending, setPending}}>
+        <AuthContext.Provider value={memoizedAuthState}>
             {children}
         </AuthContext.Provider>
     )
 }
 
 export default AuthProvider
-
-
-
-/*
-
--> haspassword
-            -> authenticated
-                -> yes
-                    ->
-
-
-*/
